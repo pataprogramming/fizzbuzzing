@@ -42,7 +42,7 @@
 (def buzz? (modulate 5 :buzz))
 
 (def pop? (modulate 4 :pop))
-
+<
 (def fizzbuzzifying (spreading fizz? buzz?))
 
 (def fizzbuzzpopifying (spreading fizz? buzz? pop?))
@@ -61,6 +61,7 @@
 (defn mapify [[i & tags]] (when tags {i (vec tags)}))
 
 (def defizzing (filter (fn [v] (not-any? #(= % :fizz) v))))
+
 
 
 ;;; Let's test some properties
@@ -140,69 +141,46 @@
 (defn multiples-of-gen [n]
   (gen/vector (multiple-of-gen n)))
 
-(def multiples-of-three   (multiples-of-gen 3))
-(def multiples-of-four    (multiples-of-gen 4))
-(def multiples-of-five    (multiples-of-gen 5))
-(def multiples-of-fifteen (multiples-of-gen 15))
-
 (defn fizzed? [x]
   (re-find #"^fizz" x))
+
 (defn buzzed? [x]
   (re-find #"buzz$" x))
 
-(defn all-fizzed-prop [xf]
-  (prop/for-all [v (trans-gen xf multiples-of-three)]
+(defn all-threes-fizz-prop [xf]
+  (prop/for-all [v (trans-gen xf (multiples-of-gen 3))]
     (every? #(re-find #"^fizz" %) v)))
 
-(defn all-buzzed-prop [xf]
-  (prop/for-all [v (trans-gen xf multiples-of-five)]
+(defn all-fives-buzz-prop [xf]
+  (prop/for-all [v (trans-gen xf (mulitples-of-gen 5))]
     (every? #(re-find #"buzz$" %) v)))
 
-(defn all-fizzbuzzed-prop [xf]
-  (prop/for-all [v (trans-gen xf multiples-of-fifteen)]
+(defn all-fifteens-fizzbuzz-prop [xf]
+  (prop/for-all [v (trans-gen xf (multiples-of-gen 15))]
     (every? #(= "fizzbuzz" %) v)))
-
-;; (defn not-multiple-of-gen [ns g]
-;;   (let [preds (apply juxt (map (fn [n] #(not= (mod % n) 0)) ns))
-;;         pred  #(some identity (preds %))]
-;;     (gen/such-that pred g 100)))
 
 (defn not-multiple-of-gen [n g]
   (gen/such-that #(not= (mod % n) 0) g 100))
 
-(defn not-multiple-of-three [g]
-  (not-multiple-of-gen 3 g))
-
-(defn not-multiple-of-five [g]
-  (not-multiple-of-gen 5 g))
-
-(defn not-multiple-of-fifteen [g]
-  (not-multiple-of-gen 15 g))
-
-(defn not-fizzable-or-buzzable [g]
-  (->> g (not-multiple-of-gen 3) (not-multiple-of-gen 5)))
-
-(def multiples-of-three-not-five
-  (->> (multiple-of-gen 3) (not-multiple-of-gen 5) gen/vector))
-
-(def multiples-of-five-not-three
-  (->> (multiple-of-gen 5) (not-multiple-of-gen 3) gen/vector))
-
-(defn threes-fizz-prop [xf]
+(defn just-threes-fizz-prop [xf]
   (prop/for-all
-      [v (->> (multiple-of-gen 3)
+      [i (->> (multiple-of-gen 3)
               (not-multiple-of-gen 5)
               (trans-gen xf))]
-    (every? #(= % "fizz") v)))
+    (= i "fizz")))
 
-(defn fives-buzz-prop [xf]
-  (prop/for-all [v (trans-gen xf multiples-of-five-not-three)]
-    (every? #(= % "buzz") v)))
+(defn just-fives-buzz-prop [xf]
+  (prop/for-all [i (->> (multiple-of-gen 5)
+                        (not-multiple-of-gen 3)
+                        (trans-gen xf))]
+    (= i "buzz")))
 
 (defn leftovers-unchanged-prop [xf]
-  (prop/for-all [v (->> positive-int-gen not-fizzable-or-buzzable gen/vector)]
-    (let [w (into [] xf v)]
-      (= v w))))
+  (prop/for-all [i (->> positive-int-gen
+                        (not-multiple-of-gen 3)
+                        (not-multiple-of-gen 5))]
+    (let [j (-> i (sequence xf) first)]
+      (= i j))))
 
 (comment
 
